@@ -32,9 +32,10 @@ async fn wait_for_server_ready(server_url: &str, max_attempts: u32) -> bool {
 
     for _ in 0..max_attempts {
         if let Ok(response) = client.get(format!("{server_url}/")).send().await
-            && response.status().is_success() {
-                return true;
-            }
+            && response.status().is_success()
+        {
+            return true;
+        }
         tokio::time::sleep(Duration::from_millis(500)).await;
     }
     false
