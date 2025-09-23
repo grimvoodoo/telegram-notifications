@@ -201,6 +201,67 @@ cargo run -- --server
 }
 ```
 
+## Development
+
+### Local Testing
+
+```bash
+# Run all tests (unit + E2E)
+TELEGRAM_BOT_TOKEN="test_token:ABCdefGHIjklMNOpqrSTUvwxyz" \
+TELEGRAM_CHAT_ID="123456789" \
+TELEGRAM_NOTIFICATIONS_SKIP_VALIDATION="true" \
+cargo test --all -- --include-ignored
+
+# Test individual components
+cargo test                    # Unit tests only
+cargo test -- --ignored       # E2E tests only
+cargo clippy                   # Linting
+cargo fmt -- --check          # Format checking
+```
+
+### Coverage Generation
+
+```bash
+# Generate code coverage (reliable approach)
+./generate-coverage.sh
+
+# Debug coverage issues
+./coverage-debug.sh
+
+# Manual coverage command
+TELEGRAM_BOT_TOKEN="test_token:ABCdefGHIjklMNOpqrSTUvwxyz" \
+TELEGRAM_CHAT_ID="123456789" \
+TELEGRAM_NOTIFICATIONS_SKIP_VALIDATION="true" \
+cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+```
+
+### CI/CD Validation
+
+```bash
+# Test all CI commands locally
+./ci-test.sh
+
+# Individual CI steps
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo build --verbose
+cargo build --release --verbose
+```
+
+### Docker
+
+```bash
+# Build and test Docker image
+docker build -t telegram-notifications:latest .
+docker run --rm telegram-notifications:latest --help
+
+# Run in server mode
+docker run -p 3000:3000 \
+  -e TELEGRAM_BOT_TOKEN="your_token" \
+  -e TELEGRAM_CHAT_ID="your_chat_id" \
+  telegram-notifications:latest --server
+```
+
 #### API Examples
 
 **Using curl:**
