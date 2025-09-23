@@ -19,29 +19,17 @@ COPY src ./src
 # Build the application
 RUN cargo build --release
 
-# Runtime stage - minimal image
-FROM debian:bookworm-slim
+# Runtime stage - scratch image for minimal footprint
+FROM scratch
 
-# Install ca-certificates for HTTPS requests to Telegram API
-RUN apt-get update && \
-    apt-get install -y ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+# Copy CA certificates from builder stage
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy the built binary from builder stage
-COPY --from=builder /app/target/release/telegram-notifications /usr/local/bin/telegram-notifications
-
-# Create non-root user for security
-RUN useradd --create-home --shell /bin/bash telegram && \
-    chown telegram:telegram /usr/local/bin/telegram-notifications
-
-USER telegram
+COPY --from=builder /app/target/release/telegram-notifications /telegram-notifications
 
 # Expose the default port
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/health || exit 1
-
 # Default command runs the server
-CMD ["telegram-notifications", "--server"]
+CMD ["/telegram-notifications", "--server"]
