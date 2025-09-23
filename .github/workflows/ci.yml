@@ -96,8 +96,8 @@ jobs:
   docker:
     name: Docker Build and Push
     runs-on: ubuntu-latest
-    # Only run on push to main/master branches and on version tags
-    if: github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master') || startsWith(github.ref, 'refs/tags/v'))
+    # Run on PRs and pushes, but skip if this is a release (releases are handled by release.yml)
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/v'))
     permissions:
       contents: read
       packages: write # Needed to push to ghcr.io
@@ -116,11 +116,10 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,format=long
             type=sha,format=short
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+            type=raw,value=dev,enable=${{ github.event_name == 'pull_request' }}
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=master,enable=${{ github.ref == 'refs/heads/master' }}
 
       - name: Login to GitHub Container Registry
         if: github.event_name != 'pull_request'

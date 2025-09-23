@@ -201,6 +201,62 @@ cargo run -- --server
 }
 ```
 
+## 🐳 Container Images
+
+Pre-built container images are available on GitHub Container Registry:
+
+### Available Tags
+
+- `ghcr.io/acleveland/telegram-notifications:latest` - Latest release
+- `ghcr.io/acleveland/telegram-notifications:v1.2.3` - Specific version
+- `ghcr.io/acleveland/telegram-notifications:main` - Latest development build
+- `ghcr.io/acleveland/telegram-notifications:sha-abc1234` - Specific commit
+
+### Docker/Podman Usage
+
+```bash
+# Pull and run latest release (server mode)
+docker pull ghcr.io/acleveland/telegram-notifications:latest
+docker run -p 3000:3000 \
+  -e TELEGRAM_BOT_TOKEN="your_token" \
+  -e TELEGRAM_CHAT_ID="your_chat_id" \
+  ghcr.io/acleveland/telegram-notifications:latest
+
+# CLI mode (send single message)
+docker run --rm \
+  -e TELEGRAM_BOT_TOKEN="your_token" \
+  -e TELEGRAM_CHAT_ID="your_chat_id" \
+  ghcr.io/acleveland/telegram-notifications:latest \
+  --message "Hello from container! 🐳"
+
+# Show available options
+docker run --rm ghcr.io/acleveland/telegram-notifications:latest --help
+```
+
+### Docker Compose
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  telegram-notifications:
+    image: ghcr.io/acleveland/telegram-notifications:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - RUST_LOG=info
+    restart: unless-stopped
+```
+
+```bash
+# Run with docker-compose
+echo "TELEGRAM_BOT_TOKEN=your_token_here" > .env
+echo "TELEGRAM_CHAT_ID=your_chat_id_here" >> .env
+docker-compose up -d
+```
+
 ## Development
 
 ### Local Testing
