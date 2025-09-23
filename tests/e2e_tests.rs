@@ -6,7 +6,7 @@ use std::time::Duration;
 /// Test helper to start the server process with a specific port
 fn start_test_server(port: u16) -> std::process::Child {
     Command::new("cargo")
-        .args(&[
+        .args([
             "run",
             "--",
             "--server",
@@ -31,7 +31,7 @@ async fn wait_for_server_ready(server_url: &str, max_attempts: u32) -> bool {
     let client = Client::new();
 
     for _ in 0..max_attempts {
-        if let Ok(response) = client.get(&format!("{}/", server_url)).send().await {
+        if let Ok(response) = client.get(format!("{server_url}/")).send().await {
             if response.status().is_success() {
                 return true;
             }
@@ -45,7 +45,7 @@ async fn wait_for_server_ready(server_url: &str, max_attempts: u32) -> bool {
 #[ignore] // This test requires actual server startup, run with --ignored
 async fn test_e2e_server_startup_and_info_endpoint() {
     let port = 3001;
-    let server_url = format!("http://127.0.0.1:{}", port);
+    let server_url = format!("http://127.0.0.1:{port}");
     let mut server_process = start_test_server(port);
 
     // Wait for server to start (should work with validation skipped)
@@ -57,7 +57,7 @@ async fn test_e2e_server_startup_and_info_endpoint() {
     let client = Client::new();
 
     // Test root endpoint
-    let response = client.get(&format!("{}/", server_url)).send().await;
+    let response = client.get(format!("{server_url}/")).send().await;
     assert!(
         response.is_ok(),
         "Failed to connect to server root endpoint"
@@ -83,7 +83,7 @@ async fn test_e2e_server_startup_and_info_endpoint() {
 #[ignore] // This test requires actual server startup, run with --ignored
 async fn test_e2e_health_endpoint() {
     let port = 3002;
-    let server_url = format!("http://127.0.0.1:{}", port);
+    let server_url = format!("http://127.0.0.1:{port}");
     let mut server_process = start_test_server(port);
 
     // Wait for server to start
@@ -95,7 +95,7 @@ async fn test_e2e_health_endpoint() {
     let client = Client::new();
 
     // Test health endpoint
-    let response = client.get(&format!("{}/health", server_url)).send().await;
+    let response = client.get(format!("{server_url}/health")).send().await;
     assert!(response.is_ok(), "Failed to connect to health endpoint");
 
     let response = response.unwrap();
@@ -120,7 +120,7 @@ async fn test_e2e_health_endpoint() {
 #[ignore] // This test requires actual server startup, run with --ignored
 async fn test_e2e_notify_endpoint_validation() {
     let port = 3003;
-    let server_url = format!("http://127.0.0.1:{}", port);
+    let server_url = format!("http://127.0.0.1:{port}");
     let mut server_process = start_test_server(port);
 
     // Wait for server to start
@@ -133,7 +133,7 @@ async fn test_e2e_notify_endpoint_validation() {
 
     // Test with empty message (should fail)
     let response = client
-        .post(&format!("{}/notify", server_url))
+        .post(format!("{server_url}/notify"))
         .json(&json!({"message": ""}))
         .send()
         .await
@@ -143,7 +143,7 @@ async fn test_e2e_notify_endpoint_validation() {
 
     // Test with missing message (should fail)
     let response = client
-        .post(&format!("{}/notify", server_url))
+        .post(format!("{server_url}/notify"))
         .json(&json!({"chat_id": "123"}))
         .send()
         .await
@@ -153,7 +153,7 @@ async fn test_e2e_notify_endpoint_validation() {
 
     // Test with valid message (should succeed in test mode)
     let response = client
-        .post(&format!("{}/notify", server_url))
+        .post(format!("{server_url}/notify"))
         .json(&json!({"message": "Test notification"}))
         .send()
         .await
@@ -179,7 +179,7 @@ async fn test_e2e_notify_endpoint_validation() {
 #[ignore] // This test requires actual server startup, run with --ignored
 async fn test_e2e_cors_headers() {
     let port = 3004;
-    let server_url = format!("http://127.0.0.1:{}", port);
+    let server_url = format!("http://127.0.0.1:{port}");
     let mut server_process = start_test_server(port);
 
     // Wait for server to start
@@ -192,7 +192,7 @@ async fn test_e2e_cors_headers() {
 
     // Test CORS preflight request
     let response = client
-        .request(reqwest::Method::OPTIONS, &format!("{}/notify", server_url))
+        .request(reqwest::Method::OPTIONS, format!("{server_url}/notify"))
         .header("Origin", "http://localhost:3000")
         .header("Access-Control-Request-Method", "POST")
         .send()
@@ -211,7 +211,7 @@ async fn test_e2e_cors_headers() {
 #[ignore] // This test requires actual server startup, run with --ignored
 async fn test_e2e_404_handling() {
     let port = 3005;
-    let server_url = format!("http://127.0.0.1:{}", port);
+    let server_url = format!("http://127.0.0.1:{port}");
     let mut server_process = start_test_server(port);
 
     // Wait for server to start
@@ -224,7 +224,7 @@ async fn test_e2e_404_handling() {
 
     // Test 404 for non-existent endpoint
     let response = client
-        .get(&format!("{}/nonexistent", server_url))
+        .get(format!("{server_url}/nonexistent"))
         .send()
         .await
         .unwrap();
@@ -240,7 +240,7 @@ async fn test_e2e_404_handling() {
 #[ignore] // This test requires actual server startup, run with --ignored
 async fn test_e2e_method_not_allowed() {
     let port = 3006;
-    let server_url = format!("http://127.0.0.1:{}", port);
+    let server_url = format!("http://127.0.0.1:{port}");
     let mut server_process = start_test_server(port);
 
     // Wait for server to start
@@ -253,7 +253,7 @@ async fn test_e2e_method_not_allowed() {
 
     // Test GET on POST-only endpoint
     let response = client
-        .get(&format!("{}/notify", server_url))
+        .get(format!("{server_url}/notify"))
         .send()
         .await
         .unwrap();
@@ -262,7 +262,7 @@ async fn test_e2e_method_not_allowed() {
 
     // Test POST on GET-only endpoint
     let response = client
-        .post(&format!("{}/", server_url))
+        .post(format!("{server_url}/"))
         .json(&json!({}))
         .send()
         .await
@@ -278,7 +278,7 @@ async fn test_e2e_method_not_allowed() {
 #[test]
 fn test_cli_help_command() {
     let output = Command::new("cargo")
-        .args(&["run", "--", "--help"])
+        .args(["run", "--", "--help"])
         .output()
         .expect("Failed to execute help command");
 
@@ -294,7 +294,7 @@ fn test_cli_help_command() {
 #[test]
 fn test_cli_version_in_help() {
     let output = Command::new("cargo")
-        .args(&["run", "--", "--help"])
+        .args(["run", "--", "--help"])
         .output()
         .expect("Failed to execute help command");
 
@@ -307,7 +307,7 @@ fn test_cli_version_in_help() {
 #[test]
 fn test_cargo_check_passes() {
     let output = Command::new("cargo")
-        .args(&["check"])
+        .args(["check"])
         .output()
         .expect("Failed to run cargo check");
 
@@ -320,7 +320,7 @@ fn test_cargo_check_passes() {
 #[test]
 fn test_cargo_clippy_passes() {
     let output = Command::new("cargo")
-        .args(&["clippy", "--", "-D", "warnings"])
+        .args(["clippy", "--", "-D", "warnings"])
         .output()
         .expect("Failed to run cargo clippy");
 
@@ -328,6 +328,6 @@ fn test_cargo_clippy_passes() {
     // about test code that we don't want to enforce
     if !output.status.success() {
         let stderr = String::from_utf8(output.stderr).unwrap();
-        println!("Clippy warnings (non-fatal): {}", stderr);
+        println!("Clippy warnings (non-fatal): {stderr}");
     }
 }

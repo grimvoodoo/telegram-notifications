@@ -179,7 +179,7 @@ mod tests {
 
         assert!(result.is_ok());
         let response = result.unwrap();
-        assert_eq!(response.ok, true);
+        assert!(response.ok);
         assert!(response.result.is_some());
 
         mock.assert_async().await;
@@ -230,7 +230,7 @@ mod tests {
 
         assert!(result.is_ok());
         let response = result.unwrap();
-        assert_eq!(response.ok, true);
+        assert!(response.ok);
 
         mock.assert_async().await;
     }
@@ -365,7 +365,7 @@ mod tests {
 
         assert!(result.is_ok());
         let response = result.unwrap();
-        assert_eq!(response.ok, true);
+        assert!(response.ok);
         assert!(response.result.is_some());
 
         if let Some(result) = response.result {
@@ -464,7 +464,7 @@ mod tests {
 
         let response: TelegramResponse = serde_json::from_value(json).unwrap();
 
-        assert_eq!(response.ok, true);
+        assert!(response.ok);
         assert!(response.result.is_some());
         assert!(response.description.is_none());
         assert!(response.error_code.is_none());
@@ -480,7 +480,7 @@ mod tests {
 
         let response: TelegramResponse = serde_json::from_value(json).unwrap();
 
-        assert_eq!(response.ok, false);
+        assert!(!response.ok);
         assert!(response.result.is_none());
         assert_eq!(
             response.description,

@@ -282,7 +282,7 @@ mod tests {
         assert_eq!(config.bot_token, "test_token_123");
         assert_eq!(config.chat_id, "987654321");
         assert_eq!(config.message, "Hello World");
-        assert_eq!(config.server, true);
+        assert!(config.server);
         assert_eq!(config.port, 8080);
         assert_eq!(config.host, "127.0.0.1");
     }
@@ -299,7 +299,7 @@ mod tests {
         };
 
         assert_eq!(config.message, "Hello from Telegram Bot! 🤖");
-        assert_eq!(config.server, false);
+        assert!(!config.server);
         assert_eq!(config.port, 3000);
         assert_eq!(config.host, "0.0.0.0");
     }
@@ -343,7 +343,7 @@ mod tests {
             host: "localhost".to_string(),
         };
 
-        let debug_str = format!("{:?}", config);
+        let debug_str = format!("{config:?}");
         assert!(debug_str.contains("secret_token"));
         assert!(debug_str.contains("123456789"));
         assert!(debug_str.contains("Test message"));
@@ -363,7 +363,7 @@ mod tests {
             host: "0.0.0.0".to_string(),
         };
 
-        let debug_str = format!("{:?}", config);
+        let debug_str = format!("{config:?}");
         assert!(debug_str.contains("secret_token"));
         assert!(debug_str.contains("123456789"));
         assert!(debug_str.contains("Test message"));

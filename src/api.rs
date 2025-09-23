@@ -107,7 +107,6 @@ impl InfoResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
     fn test_send_notification_request_deserialization_minimal() {
@@ -216,7 +215,7 @@ mod tests {
     fn test_error_response_with_code() {
         let error = ErrorResponse::with_code("Test error".to_string(), "TEST_ERROR".to_string());
 
-        assert_eq!(error.success, false);
+        assert!(!error.success);
         assert_eq!(error.error, "Test error");
         assert_eq!(error.code, Some("TEST_ERROR".to_string()));
     }
