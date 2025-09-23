@@ -1,181 +1,123 @@
 name: CI
-
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
-
+    branches: [main, master]
 env:
   CARGO_TERM_COLOR: always
-
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        components: rustfmt, clippy
-
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-    - name: Check formatting
-      run: cargo fmt --all -- --check
-
-    - name: Run Clippy
-      run: cargo clippy --all-targets --all-features -- -D warnings
-
-    - name: Build
-      run: cargo build --verbose
-
-    - name: Run all tests (including ignored E2E tests)
-      run: cargo test --all --verbose -- --include-ignored
-      env:
-        TELEGRAM_BOT_TOKEN: "test_token:ABCdefGHIjklMNOpqrSTUvwxyz"
-        TELEGRAM_CHAT_ID: "123456789"
-        TELEGRAM_NOTIFICATIONS_SKIP_VALIDATION: "true"
-        RUST_BACKTRACE: 1
-      timeout-minutes: 10
-
-    - name: Build release
-      run: cargo build --release --verbose
-
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Build
+        run: cargo build --verbose
+      - name: Run all tests (including ignored E2E tests)
+        run: cargo test --all --verbose -- --include-ignored
+        env:
+          TELEGRAM_BOT_TOKEN: "test_token:ABCdefGHIjklMNOpqrSTUvwxyz"
+          TELEGRAM_CHAT_ID: "123456789"
+          TELEGRAM_NOTIFICATIONS_SKIP_VALIDATION: "true"
+          RUST_BACKTRACE: 1
+        timeout-minutes: 10
+      - name: Build release
+        run: cargo build --release --verbose
   security:
     name: Security Audit
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-      
-    - name: Install cargo-audit
-      run: cargo install cargo-audit
-      
-    - name: Run security audit
-      run: cargo audit
-
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+      - name: Run security audit
+        run: cargo audit
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        components: llvm-tools-preview
-
-    - name: Install cargo-llvm-cov
-      uses: taiki-e/install-action@cargo-llvm-cov
-
-    - name: Generate code coverage
-      run: |
-        # Clean previous coverage runs
-        cargo llvm-cov clean || true
-        
-        # Use the most reliable approach: run without ignored tests first
-        echo "🔍 Generating code coverage (approach 1: standard without ignored tests)..."
-        if cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info; then
-          echo "✅ Standard coverage succeeded (unit tests + CLI tests)"
-        else
-          echo "❌ Standard coverage failed, trying alternative approaches..."
-          
-          # Fallback 1: Run with ignored tests but single-threaded
-          echo "🔄 Trying single-threaded coverage with ignored tests..."
-          if cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info -- --include-ignored --test-threads=1; then
-            echo "✅ Single-threaded coverage with ignored tests succeeded"
-          # Fallback 2: Just lib and bins (most reliable)
-          elif cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info --lib --bins; then
-            echo "✅ Library and binary coverage succeeded"
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Generate code coverage
+        run: "# Clean previous coverage runs\ncargo llvm-cov clean || true\n\n# Use the most reliable approach: run without ignored tests first\necho \"🔍 Generating code coverage (approach 1: standard without ignored tests)...\"\nif cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info; then\n  echo \"✅ Standard coverage succeeded (unit tests + CLI tests)\"\nelse\n  echo \"❌ Standard coverage failed, trying alternative approaches...\"\n  \n  # Fallback 1: Run with ignored tests but single-threaded\n  echo \"🔄 Trying single-threaded coverage with ignored tests...\"\n  if cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info -- --include-ignored --test-threads=1; then\n    echo \"✅ Single-threaded coverage with ignored tests succeeded\"\n  # Fallback 2: Just lib and bins (most reliable)\n  elif cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info --lib --bins; then\n    echo \"✅ Library and binary coverage succeeded\"\n  else\n    echo \"❌ All coverage approaches failed\"\n    exit 1\n  fi\nfi\n\n# Verify the coverage file was generated\nif [[ -f lcov.info ]] && [[ -s lcov.info ]]; then\n  lines=$(wc -l < lcov.info)\n  size=$(stat --format=%s lcov.info)\n  echo \"✅ Coverage file generated: $lines lines, $size bytes\"\nelse\n  echo \"❌ Coverage file missing or empty\"\n  exit 1\nfi\n"
+        env:
+          TELEGRAM_BOT_TOKEN: "test_token:ABCdefGHIjklMNOpqrSTUvwxyz"
+          TELEGRAM_CHAT_ID: "123456789"
+          TELEGRAM_NOTIFICATIONS_SKIP_VALIDATION: "true"
+          RUST_BACKTRACE: 1
+        timeout-minutes: 20
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: lcov.info
+          fail_ci_if_error: false # Don't fail CI if Codecov upload fails
+          verbose: true
+        continue-on-error: true # Continue even if this step fails
+      - name: Coverage upload result
+        run: |
+          if [[ -f lcov.info ]]; then
+            echo "✅ Coverage file generated successfully"
+            echo "📊 Coverage file stats: $(wc -l < lcov.info) lines, $(stat --format=%s lcov.info) bytes"
+            echo "🔗 Coverage uploaded to Codecov (if token available)"
           else
-            echo "❌ All coverage approaches failed"
+            echo "❌ Coverage file not found"
             exit 1
           fi
-        fi
-        
-        # Verify the coverage file was generated
-        if [[ -f lcov.info ]] && [[ -s lcov.info ]]; then
-          lines=$(wc -l < lcov.info)
-          size=$(stat --format=%s lcov.info)
-          echo "✅ Coverage file generated: $lines lines, $size bytes"
-        else
-          echo "❌ Coverage file missing or empty"
-          exit 1
-        fi
-      env:
-        TELEGRAM_BOT_TOKEN: "test_token:ABCdefGHIjklMNOpqrSTUvwxyz"
-        TELEGRAM_CHAT_ID: "123456789"
-        TELEGRAM_NOTIFICATIONS_SKIP_VALIDATION: "true"
-        RUST_BACKTRACE: 1
-      timeout-minutes: 20
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: lcov.info
-        fail_ci_if_error: false  # Don't fail CI if Codecov upload fails
-        verbose: true
-      continue-on-error: true  # Continue even if this step fails
-      
-    - name: Coverage upload result
-      run: |
-        if [[ -f lcov.info ]]; then
-          echo "✅ Coverage file generated successfully"
-          echo "📊 Coverage file stats: $(wc -l < lcov.info) lines, $(stat --format=%s lcov.info) bytes"
-          echo "🔗 Coverage uploaded to Codecov (if token available)"
-        else
-          echo "❌ Coverage file not found"
-          exit 1
-        fi
-
   docker:
     name: Docker Build
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        platforms: linux/amd64
-        tags: telegram-notifications:latest
-        push: false
-        load: true  # This loads the image into Docker daemon
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    - name: Test Docker image
-      run: |
-        echo "Testing Docker image..."
-        docker images | grep telegram-notifications
-        echo "Running --help command..."
-        docker run --rm telegram-notifications:latest --help
-        echo "Testing server mode startup (should exit quickly)..."
-        timeout 10s docker run --rm -e TELEGRAM_NOTIFICATIONS_SKIP_VALIDATION=true -e TELEGRAM_BOT_TOKEN=test -e TELEGRAM_CHAT_ID=123 telegram-notifications:latest --server || true
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          tags: telegram-notifications:latest
+          push: false
+          load: true # This loads the image into Docker daemon
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Test Docker image
+        run: |
+          echo "Testing Docker image..."
+          docker images | grep telegram-notifications
+          echo "Running --help command..."
+          docker run --rm telegram-notifications:latest --help
+          echo "Testing server mode startup (should exit quickly)..."
+          timeout 10s docker run --rm -e TELEGRAM_NOTIFICATIONS_SKIP_VALIDATION=true -e TELEGRAM_BOT_TOKEN=test -e TELEGRAM_CHAT_ID=123 telegram-notifications:latest --server || true

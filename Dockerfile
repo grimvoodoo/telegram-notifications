@@ -1,5 +1,11 @@
 # Multi-stage build to create minimal production image
-FROM rust:1.88-slim as builder
+FROM rust:1 as builder
+
+# Install musl tools
+RUN apt-get update && apt-get install -y musl-tools && rm -rf /var/lib/apt/lists/*
+
+# Install musl target
+RUN rustup target add x86_64-unknown-linux-musl
 
 WORKDIR /app
 
@@ -10,23 +16,23 @@ COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && echo "fn main() {}" > src/main.rs
 
 # Build dependencies (this will be cached unless Cargo.toml changes)
-RUN cargo build --release
+RUN cargo build --release --target x86_64-unknown-linux-musl
 RUN rm src/main.rs
 
 # Copy actual source code
 COPY src ./src
 
-# Build the application
-RUN cargo build --release
+# Build the application as static binary
+RUN cargo build --release --target x86_64-unknown-linux-musl
 
 # Runtime stage - scratch image for minimal footprint
 FROM scratch
 
-# Copy CA certificates from builder stage
+# Copy CA certificates from builder stage for HTTPS requests
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-# Copy the built binary from builder stage
-COPY --from=builder /app/target/release/telegram-notifications /telegram-notifications
+# Copy the statically-linked binary from builder stage
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/telegram-notifications /telegram-notifications
 
 # Expose the default port
 EXPOSE 3000
