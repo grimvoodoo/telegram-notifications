@@ -31,5 +31,8 @@ COPY --from=builder /app/target/release/telegram-notifications /telegram-notific
 # Expose the default port
 EXPOSE 3000
 
-# Default command runs the server
-CMD ["/telegram-notifications", "--server"]
+# Set the binary as entrypoint so arguments can be passed
+ENTRYPOINT ["/telegram-notifications"]
+
+# Default arguments (can be overridden)
+CMD ["--server"]
